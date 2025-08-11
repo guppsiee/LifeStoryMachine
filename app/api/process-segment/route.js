@@ -46,7 +46,10 @@ export async function POST(req) {
     session.lastUpdated = new Date();
     await session.save();
 
-    return NextResponse.json({ sessionHistory: session });
+    return NextResponse.json({ 
+      sessionHistory: session,
+      newTranscript: transcript 
+    });
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

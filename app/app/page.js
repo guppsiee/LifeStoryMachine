@@ -57,8 +57,12 @@ export default function AppPage() {
     saveSessionText(newText);
   };
 
-  const handleNewRecording = (newSessionText) => {
-    setSessionText(newSessionText);
+  const handleNewRecording = (newTranscript) => {
+    // Append the new transcript to existing content
+    setSessionText(prevText => {
+      const updatedText = prevText ? `${prevText}\n${newTranscript}` : newTranscript;
+      return updatedText;
+    });
     // Don't trigger auto-save here since the recording API already saved the data
   };
 

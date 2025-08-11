@@ -42,7 +42,8 @@ export default function RecordingComponent({ onNewRecording }) {
       }
 
       const data = await response.json();
-      onNewRecording(data.sessionHistory.segments.join('\n'));
+      // Use the new transcript to append to existing content
+      onNewRecording(data.newTranscript);
       setStatusMessage('Segment processed successfully.');
     } catch (error) {
       console.error('Error sending audio:', error);
