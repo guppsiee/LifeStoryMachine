@@ -6,12 +6,6 @@ import User from '../../../models/user';
 import { OpenAI } from 'openai';
 import { Resend } from 'resend';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req) {
   try {
     const token = req.cookies.get('token')?.value;
@@ -37,6 +31,15 @@ export async function POST(req) {
 
     const combinedText = session.segments.join('\\n\\n');
 
+    // Initialize OpenAI with error handling
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ message: 'OpenAI API key not configured' }, { status: 500 });
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const storyResponse = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
@@ -46,6 +49,13 @@ export async function POST(req) {
     });
 
     const story = storyResponse.choices[0].message.content;
+
+    // Initialize Resend with error handling
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ message: 'Email service not configured' }, { status: 500 });
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
       from: 'Life Story Machine <onboarding@resend.dev>',
