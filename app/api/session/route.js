@@ -16,9 +16,11 @@ export async function GET(req) {
 
     await dbConnect();
 
-    const session = await SessionHistory.findOne({ userId });
+    let session = await SessionHistory.findOne({ userId });
     if (!session) {
-      return NextResponse.json({ sessionHistory: { segments: [] } });
+      // If no session, create one
+      session = new SessionHistory({ userId, segments: [] });
+      await session.save();
     }
 
     return NextResponse.json({ sessionHistory: session });
@@ -28,6 +30,39 @@ export async function GET(req) {
     }
     console.error('Error fetching session:', error);
     return NextResponse.json({ message: 'Error fetching session' }, { status: 500 });
+  }
+}
+
+export async function POST(req) {
+  try {
+    const token = req.cookies.get('token')?.value;
+
+    if (!token) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+
+    const { text } = await req.json();
+
+    await dbConnect();
+
+    const segments = text.split('\n');
+
+    await SessionHistory.updateOne(
+      { userId },
+      { $set: { segments: segments } },
+      { upsert: true }
+    );
+
+    return NextResponse.json({ message: 'Session updated successfully' });
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    console.error('Error updating session:', error);
+    return NextResponse.json({ message: 'Error updating session' }, { status: 500 });
   }
 }
 
@@ -46,7 +81,10 @@ export async function DELETE(req) {
 
     await SessionHistory.deleteOne({ userId });
 
-    return NextResponse.json({ message: 'Session deleted successfully' });
+    const response = NextResponse.json({ message: 'Session deleted successfully' });
+    response.cookies.set('token', '', { httpOnly: true, secure: process.env.NODE_ENV !== 'development', sameSite: 'strict', path: '/', expires: new Date(0) });
+
+    return response;
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

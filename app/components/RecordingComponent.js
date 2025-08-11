@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import useRecorder from '../hooks/useRecorder';
+import { Mic, Square } from 'lucide-react';
 
 export default function RecordingComponent({ onNewRecording }) {
   const { isStarting, isRecording, audioBlob, recorderError, startRecording, stopRecording, clearAudioBlob } = useRecorder();
-  const [statusMessage, setStatusMessage] = useState('Click "Start Recording" to begin.');
+  const [statusMessage, setStatusMessage] = useState('Ready to record your story');
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -17,6 +18,8 @@ export default function RecordingComponent({ onNewRecording }) {
       setStatusMessage('Recording in progress...');
     } else if (isProcessing) {
       setStatusMessage('Processing your story...');
+    } else {
+      setStatusMessage('Ready to record your story');
     }
   }, [recorderError, isStarting, isRecording, isProcessing]);
 
@@ -39,7 +42,7 @@ export default function RecordingComponent({ onNewRecording }) {
       }
 
       const data = await response.json();
-      onNewRecording(data.sessionHistory.segments.join('\\n'));
+      onNewRecording(data.sessionHistory.segments.join('\n'));
       setStatusMessage('Segment processed successfully.');
     } catch (error) {
       console.error('Error sending audio:', error);
@@ -49,7 +52,7 @@ export default function RecordingComponent({ onNewRecording }) {
       clearAudioBlob();
       setTimeout(() => {
         if (!isRecording && !isProcessing && !recorderError) {
-          setStatusMessage('Click "Start Recording" to begin.');
+          setStatusMessage('Ready to record your story');
         }
       }, 3000);
     }
@@ -69,33 +72,27 @@ export default function RecordingComponent({ onNewRecording }) {
     }
   }, [audioBlob]);
 
-  const getButtonText = () => {
-    if (recorderError) return 'Try Again';
-    if (isStarting) return 'Starting...';
-    if (isRecording) return 'Stop Recording';
-    if (isProcessing) return 'Processing...';
-    return 'Start Recording';
-  };
+  const buttonText = isRecording ? 'Stop Recording' : 'Start Recording';
+  const ButtonIcon = isRecording ? Square : Mic;
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-8">
-      <div className="text-center">
-        <p className="text-lg text-gray-600">{statusMessage}</p>
+    <div className="flex flex-col items-center justify-center text-center space-y-6">
+      <div className={`flex items-center justify-center h-24 w-24 rounded-full ${isRecording ? 'bg-red-100' : 'bg-blue-100'}`}>
+        <Mic className={`h-12 w-12 ${isRecording ? 'text-red-500 animate-pulse' : 'text-blue-500'}`} />
       </div>
-      <div className="flex items-center justify-center space-x-4">
-        {(isRecording || isProcessing || isStarting) && !recorderError && (
-          <div className="w-4 h-4 rounded-full bg-red-500 animate-pulse"></div>
-        )}
-        <button
-          onClick={handleToggleRecording}
-          disabled={isProcessing || isStarting || recorderError}
-          className={`px-8 py-4 text-lg font-semibold text-white rounded-full shadow-lg transition-transform transform hover:scale-105 ${
-            isRecording && !recorderError ? 'bg-accent hover:bg-accent/90' : 'bg-primary hover:bg-primary/90'
-          } ${isProcessing || isStarting || recorderError ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {getButtonText()}
-        </button>
-      </div>
+      <p className="text-xl text-neutral-600">{statusMessage}</p>
+      <button
+        onClick={handleToggleRecording}
+        disabled={isProcessing || isStarting || recorderError}
+        className={`flex items-center space-x-2 px-8 py-3 text-lg font-semibold rounded-lg shadow-md transition-all ${
+          isRecording 
+            ? 'bg-red-500 text-white hover:bg-red-600' 
+            : 'bg-blue-500 text-white hover:bg-blue-600'
+        } ${isProcessing || isStarting || recorderError ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        <ButtonIcon className="h-5 w-5" />
+        <span>{buttonText}</span>
+      </button>
     </div>
   );
 } 

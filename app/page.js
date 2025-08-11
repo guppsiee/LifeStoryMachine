@@ -8,9 +8,17 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (document.cookie.includes('token=')) {
-      router.push('/app');
-    }
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/session');
+        if (response.ok) {
+          router.push('/app');
+        }
+      } catch (error) {
+        console.error('Failed to check session:', error);
+      }
+    };
+    checkSession();
   }, [router]);
 
   return (
@@ -23,16 +31,12 @@ export default function Home() {
           Record your memories, and we'll craft them into a beautiful life story that you can cherish forever. It's simple, personal, and all yours.
         </p>
         <div className="flex justify-center gap-4">
-          <Link href="/login" legacyBehavior>
-            <a className="inline-block bg-primary text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-300">
+          <Link href="/login" className="inline-block bg-neutral-900 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-neutral-800 transition-colors duration-300">
               Login
-            </a>
-          </Link>
-          <Link href="/register" legacyBehavior>
-            <a className="inline-block bg-secondary text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-secondary/90 transition-colors duration-300">
+            </Link>
+            <Link href="/register" className="inline-block bg-neutral-900 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-neutral-800 transition-colors duration-300">
               Register
-            </a>
-          </Link>
+            </Link>
         </div>
       </div>
     </main>
