@@ -59,7 +59,7 @@ export default function AppPage() {
 
   const handleNewRecording = (newSessionText) => {
     setSessionText(newSessionText);
-    saveSessionText(newSessionText);
+    // Don't trigger auto-save here since the recording API already saved the data
   };
 
   const handleLogout = async () => {

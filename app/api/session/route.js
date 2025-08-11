@@ -48,13 +48,19 @@ export async function POST(req) {
 
     await dbConnect();
 
-    const segments = text.split('\n');
+    // Get current session to preserve the structure
+    let session = await SessionHistory.findOne({ userId });
+    if (!session) {
+      session = new SessionHistory({ userId, segments: [] });
+    }
 
-    await SessionHistory.updateOne(
-      { userId },
-      { $set: { segments: segments } },
-      { upsert: true }
-    );
+    // Split the text and filter out empty segments
+    const segments = text.split('\n').filter(segment => segment.trim() !== '');
+
+    // Update the session with the new segments
+    session.segments = segments;
+    session.lastUpdated = new Date();
+    await session.save();
 
     return NextResponse.json({ message: 'Session updated successfully' });
   } catch (error) {
