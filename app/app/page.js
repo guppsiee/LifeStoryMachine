@@ -10,15 +10,20 @@ import { debounce } from 'lodash';
 export default function AppPage() {
   const [sessionText, setSessionText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isProcessingRecording, setIsProcessingRecording] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const fetchSession = async () => {
       try {
+        console.log('📱 [AppPage] Fetching initial session data');
         const response = await fetch('/api/session');
         if (response.ok) {
           const data = await response.json();
-          setSessionText(data.sessionHistory.segments.join('\n'));
+          console.log('📱 [AppPage] Initial session data:', data);
+          const initialText = data.sessionHistory.segments.join('\n');
+          console.log('📱 [AppPage] Setting initial session text:', initialText);
+          setSessionText(initialText);
         } else {
           router.push('/');
         }
@@ -31,7 +36,9 @@ export default function AppPage() {
   }, [router]);
 
   const saveSessionText = useCallback((text) => {
+    console.log('💾 [AppPage] saveSessionText called with:', text);
     const debouncedSave = debounce(async (textToSave) => {
+      console.log('💾 [AppPage] Debounced save executing with:', textToSave);
       setIsSaving(true);
       try {
         await fetch('/api/session', {
@@ -41,6 +48,7 @@ export default function AppPage() {
           },
           body: JSON.stringify({ text: textToSave }),
         });
+        console.log('💾 [AppPage] Auto-save completed successfully');
       } catch (error) {
         console.error('Failed to save session:', error);
         toast.error('Failed to save changes.');
@@ -53,16 +61,35 @@ export default function AppPage() {
 
   const handleTextChange = (e) => {
     const newText = e.target.value;
+    console.log('✏️ [AppPage] Manual text change:', newText);
     setSessionText(newText);
     saveSessionText(newText);
   };
 
   const handleNewRecording = (newTranscript) => {
+    console.log('📝 [AppPage] handleNewRecording called with:', newTranscript);
+    
+    // Prevent multiple simultaneous recording updates
+    if (isProcessingRecording) {
+      console.log('📝 [AppPage] Already processing recording, skipping duplicate');
+      return;
+    }
+    
+    setIsProcessingRecording(true);
+    
     // Append the new transcript to existing content
     setSessionText(prevText => {
+      console.log('📝 [AppPage] Current text before update:', prevText);
       const updatedText = prevText ? `${prevText}\n${newTranscript}` : newTranscript;
+      console.log('📝 [AppPage] Updated text after append:', updatedText);
       return updatedText;
     });
+    
+    // Reset the processing flag after a short delay
+    setTimeout(() => {
+      setIsProcessingRecording(false);
+    }, 500);
+    
     // Don't trigger auto-save here since the recording API already saved the data
   };
 
@@ -80,6 +107,19 @@ export default function AppPage() {
 
   const handleSaveDraft = () => {
     toast.success('Draft saved successfully!');
+  }
+
+  const handleCleanupSession = async () => {
+    const promise = fetch('/api/cleanup-session', { method: 'POST' });
+    toast.promise(promise, {
+      loading: 'Cleaning up duplicates...',
+      success: (response) => {
+        // Refresh the session after cleanup
+        window.location.reload();
+        return 'Duplicates cleaned up successfully!';
+      },
+      error: 'Failed to clean up session.'
+    });
   }
 
   const wordCount = sessionText.trim().split(/\s+/).filter(Boolean).length;
@@ -171,6 +211,10 @@ export default function AppPage() {
             <button onClick={handleSaveDraft} className="flex items-center space-x-2 bg-neutral-200 text-neutral-700 px-8 py-3 rounded-lg font-semibold text-lg shadow-md hover:bg-neutral-300 transition">
               <Save className="h-5 w-5" />
               <span>Save Draft</span>
+            </button>
+            <button onClick={handleCleanupSession} className="flex items-center space-x-2 bg-red-500 text-white px-8 py-3 rounded-lg font-semibold text-lg shadow-md hover:bg-red-600 transition">
+              <Trash2 className="h-5 w-5" />
+              <span>Clean Duplicates</span>
             </button>
           </div>
           <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">

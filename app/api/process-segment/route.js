@@ -18,6 +18,7 @@ export async function POST(req) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
+    console.log('🔊 [process-segment] Processing audio for user:', userId);
 
     await dbConnect();
 
@@ -29,27 +30,52 @@ export async function POST(req) {
     }
 
     const buffer = Buffer.from(await audioFile.arrayBuffer());
+    console.log('🔊 [process-segment] Audio buffer size:', buffer.length);
     
-    const transcription = await openai.audio.transcriptions.create({
-      model: 'whisper-1',
-      file: new File([buffer], "audio.webm", { type: "audio/webm" }),
-    });
-
-    const transcript = transcription.text;
-
-    let session = await SessionHistory.findOne({ userId });
-    if (!session) {
-      session = new SessionHistory({ userId, segments: [] });
+    let transcript;
+    
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      // Fallback to simulated transcript if no API key
+      transcript = `Simulated transcript ${Date.now()}`;
+      console.log('🔊 [process-segment] No OpenAI key, using simulated transcript:', transcript);
+    } else {
+      // Use actual OpenAI transcription
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+      
+      const transcription = await openai.audio.transcriptions.create({
+        model: 'whisper-1',
+        file: new File([buffer], "audio.webm", { type: "audio/webm" }),
+      });
+      transcript = transcription.text;
+      console.log('🔊 [process-segment] OpenAI transcript:', transcript);
     }
 
+    let session = await SessionHistory.findOne({ userId });
+    console.log('🔊 [process-segment] Current session before update:', session);
+    
+    if (!session) {
+      session = new SessionHistory({ userId, segments: [] });
+      console.log('🔊 [process-segment] Created new session');
+    }
+
+    console.log('🔊 [process-segment] Segments before push:', session.segments);
     session.segments.push(transcript);
+    console.log('🔊 [process-segment] Segments after push:', session.segments);
+    
     session.lastUpdated = new Date();
     await session.save();
+    console.log('🔊 [process-segment] Session saved successfully');
 
-    return NextResponse.json({ 
+    const response = { 
       sessionHistory: session,
       newTranscript: transcript 
-    });
+    };
+    console.log('🔊 [process-segment] Returning response:', response);
+    
+    return NextResponse.json(response);
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

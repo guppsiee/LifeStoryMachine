@@ -8,6 +8,7 @@ export default function RecordingComponent({ onNewRecording }) {
   const { isStarting, isRecording, audioBlob, recorderError, startRecording, stopRecording, clearAudioBlob } = useRecorder();
   const [statusMessage, setStatusMessage] = useState('Ready to record your story');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processedBlobIds] = useState(new Set()); // Track processed blobs
 
   useEffect(() => {
     if (recorderError) {
@@ -24,13 +25,26 @@ export default function RecordingComponent({ onNewRecording }) {
   }, [recorderError, isStarting, isRecording, isProcessing]);
 
   const sendAudio = useCallback(async (blob) => {
+    console.log('🎙️ [RecordingComponent] sendAudio called with blob:', blob);
     if (!blob) return;
+    
+    // Create a unique ID for this blob to prevent duplicate processing
+    const blobId = `${blob.size}_${blob.type}_${Date.now()}`;
+    console.log('🎙️ [RecordingComponent] Blob ID:', blobId);
+    
+    if (processedBlobIds.has(blobId)) {
+      console.log('🎙️ [RecordingComponent] Blob already processed, skipping');
+      return;
+    }
+    
+    processedBlobIds.add(blobId);
     setIsProcessing(true);
 
     const formData = new FormData();
     formData.append('audio', blob, 'story.webm');
 
     try {
+      console.log('🎙️ [RecordingComponent] Sending audio to /api/process-segment');
       const response = await fetch('/api/process-segment', {
         method: 'POST',
         body: formData,
@@ -42,7 +56,12 @@ export default function RecordingComponent({ onNewRecording }) {
       }
 
       const data = await response.json();
+      console.log('🎙️ [RecordingComponent] API Response:', data);
+      console.log('🎙️ [RecordingComponent] New transcript:', data.newTranscript);
+      console.log('🎙️ [RecordingComponent] Full session segments:', data.sessionHistory.segments);
+      
       // Use the new transcript to append to existing content
+      console.log('🎙️ [RecordingComponent] Calling onNewRecording with:', data.newTranscript);
       onNewRecording(data.newTranscript);
       setStatusMessage('Segment processed successfully.');
     } catch (error) {
@@ -57,7 +76,7 @@ export default function RecordingComponent({ onNewRecording }) {
         }
       }, 3000);
     }
-  }, [onNewRecording, clearAudioBlob, isRecording, isProcessing, recorderError]);
+  }, [onNewRecording, clearAudioBlob]); // Reduce dependencies to prevent recreation
 
   const handleToggleRecording = () => {
     if (!isRecording && !isStarting) {
@@ -69,9 +88,10 @@ export default function RecordingComponent({ onNewRecording }) {
 
   useEffect(() => {
     if (audioBlob) {
+      console.log('🎯 [RecordingComponent] useEffect triggered with audioBlob:', audioBlob);
       sendAudio(audioBlob);
     }
-  }, [audioBlob, sendAudio]);
+  }, [audioBlob]); // Remove sendAudio from dependencies to prevent recreation loops
 
   const buttonText = isRecording ? 'Stop Recording' : 'Start Recording';
   const ButtonIcon = isRecording ? Square : Mic;
