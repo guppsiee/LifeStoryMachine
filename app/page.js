@@ -28,7 +28,7 @@ export default function Home() {
           Welcome to the Life Story Machine
         </h1>
         <p className="text-lg text-neutral-600 mb-8 max-w-2xl mx-auto">
-          Record your memories, and we'll craft them into a beautiful life story that you can cherish forever. It's simple, personal, and all yours.
+          Record your memories, and we&apos;ll craft them into a beautiful life story that you can cherish forever. It&apos;s simple, personal, and all yours.
         </p>
         <div className="flex justify-center gap-4">
           <Link href="/login" className="inline-block bg-neutral-900 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-neutral-800 transition-colors duration-300">

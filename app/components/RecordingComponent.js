@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useRecorder from '../hooks/useRecorder';
 import { Mic, Square } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export default function RecordingComponent({ onNewRecording }) {
     }
   }, [recorderError, isStarting, isRecording, isProcessing]);
 
-  const sendAudio = async (blob) => {
+  const sendAudio = useCallback(async (blob) => {
     if (!blob) return;
     setIsProcessing(true);
 
@@ -56,7 +56,7 @@ export default function RecordingComponent({ onNewRecording }) {
         }
       }, 3000);
     }
-  };
+  }, [onNewRecording, clearAudioBlob, isRecording, isProcessing, recorderError]);
 
   const handleToggleRecording = () => {
     if (!isRecording && !isStarting) {
@@ -70,7 +70,7 @@ export default function RecordingComponent({ onNewRecording }) {
     if (audioBlob) {
       sendAudio(audioBlob);
     }
-  }, [audioBlob]);
+  }, [audioBlob, sendAudio]);
 
   const buttonText = isRecording ? 'Stop Recording' : 'Start Recording';
   const ButtonIcon = isRecording ? Square : Mic;

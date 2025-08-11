@@ -30,8 +30,8 @@ export default function AppPage() {
     fetchSession();
   }, [router]);
 
-  const saveSessionText = useCallback(
-    debounce(async (text) => {
+  const saveSessionText = useCallback((text) => {
+    const debouncedSave = debounce(async (textToSave) => {
       setIsSaving(true);
       try {
         await fetch('/api/session', {
@@ -39,7 +39,7 @@ export default function AppPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text: textToSave }),
         });
       } catch (error) {
         console.error('Failed to save session:', error);
@@ -47,9 +47,9 @@ export default function AppPage() {
       } finally {
         setIsSaving(false);
       }
-    }, 1000),
-    []
-  );
+    }, 1000);
+    debouncedSave(text);
+  }, [setIsSaving]);
 
   const handleTextChange = (e) => {
     const newText = e.target.value;
@@ -132,7 +132,7 @@ export default function AppPage() {
         <div className="space-y-12">
           <div>
             <h1 className="text-4xl font-extrabold text-neutral-800">Record Your Story</h1>
-            <p className="mt-2 text-lg text-neutral-500">Share your memories and experiences. We'll help you craft them into a beautiful story.</p>
+            <p className="mt-2 text-lg text-neutral-500">Share your memories and experiences. We&apos;ll help you craft them into a beautiful story.</p>
           </div>
           <div className="bg-white p-8 rounded-2xl shadow-md border border-neutral-200">
             <RecordingComponent onNewRecording={handleNewRecording} />
@@ -177,10 +177,10 @@ export default function AppPage() {
               <div className="ml-4">
                 <h3 className="text-xl font-bold text-neutral-800">How it works</h3>
                 <div className="mt-4 space-y-3 text-neutral-700">
-                    <p><span className="font-bold">1.</span> Click "Start Recording" and speak naturally about your memories and experiences</p>
+                    <p><span className="font-bold">1.</span> Click &quot;Start Recording&quot; and speak naturally about your memories and experiences</p>
                     <p><span className="font-bold">2.</span> Your words are transcribed in real-time. You can pause and resume recording at any time.</p>
-                    <p><span className="font-bold">3.</span> Once you're done, you can edit the transcript to make any corrections or additions.</p>
-                    <p><span className="font-bold">4.</span> Click "Generate Story" and we'll transform your transcript into a beautifully written story.</p>
+                    <p><span className="font-bold">3.</span> Once you&apos;re done, you can edit the transcript to make any corrections or additions.</p>
+                    <p><span className="font-bold">4.</span> Click &quot;Generate Story&quot; and we&apos;ll transform your transcript into a beautifully written story.</p>
                 </div>
               </div>
             </div>
